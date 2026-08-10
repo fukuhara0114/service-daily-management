@@ -20,10 +20,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $appUrl = config('app.url');
+        $configured = config('app.url');
+        $path = '';
 
-        if (is_string($appUrl) && $appUrl !== '') {
-            URL::forceRootUrl(rtrim($appUrl, '/'));
+        if (is_string($configured) && $configured !== '') {
+            $path = rtrim((string) parse_url($configured, PHP_URL_PATH), '/');
+        }
+
+        // Use the current host so assets work via hostname (not only localhost).
+        if (! app()->runningInConsole()) {
+            URL::forceRootUrl(rtrim(request()->getSchemeAndHttpHost().$path, '/'));
+
+            return;
+        }
+
+        if (is_string($configured) && $configured !== '') {
+            URL::forceRootUrl(rtrim($configured, '/'));
         }
     }
 }
