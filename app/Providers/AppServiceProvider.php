@@ -20,19 +20,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $configured = config('app.url');
-        $path = '';
-
-        if (is_string($configured) && $configured !== '') {
-            $path = rtrim((string) parse_url($configured, PHP_URL_PATH), '/');
-        }
-
-        // Use the current host so assets work via hostname (not only localhost).
         if (! app()->runningInConsole()) {
-            URL::forceRootUrl(rtrim(request()->getSchemeAndHttpHost().$path, '/'));
+            $basePath = request()->getBasePath();
+            $root = rtrim(request()->getSchemeAndHttpHost().$basePath, '/');
+
+            URL::forceRootUrl($root !== '' ? $root : request()->getSchemeAndHttpHost());
+
+            // Keep session/CSRF cookies scoped to the actual IIS virtual directory.
+            config([
+                'session.path' => $basePath === '' ? '/' : $basePath,
+            ]);
 
             return;
         }
+
+        $configured = config('app.url');
 
         if (is_string($configured) && $configured !== '') {
             URL::forceRootUrl(rtrim($configured, '/'));
